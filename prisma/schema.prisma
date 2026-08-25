@@ -7,18 +7,139 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id           Int      @id @default(autoincrement())
-  name         String
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(STUDENT)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+enum Role {
+  ADMIN
+  INSTRUCTOR
+  STUDENT
 }
 
-enum Role {
-  STUDENT
-  TEACHER
-  ADMIN
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  passwordHash  String
+  role      Role     @default(STUDENT)
+  
+  courses      Course[]
+  enrollments Enrollment[]
+quizAttempts QuizAttempt[]
+lessonProgress LessonProgress[]
+certificates Certificate[]
+
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Course {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  thumbnail   String?
+  published   Boolean  @default(false)
+
+  instructorId Int
+  instructor   User    @relation(fields: [instructorId], references: [id])
+  
+  enrollments Enrollment[]
+  lessons Lesson[]
+   quizzes Quiz[] 
+certificates Certificate[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Enrollment {
+  id         Int      @id @default(autoincrement())
+  studentId  Int
+  courseId   Int
+  enrolledAt DateTime @default(now())
+
+  student    User     @relation(fields: [studentId], references: [id])
+  course     Course   @relation(fields: [courseId], references: [id])
+
+  @@unique([studentId, courseId])
+}
+
+model Lesson {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String?
+  videoUrl    String?
+  order       Int      @default(1)
+
+  courseId    Int
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+progress LessonProgress[]
+
+
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+
+model Quiz {
+  id        Int      @id @default(autoincrement())
+  title     String
+  courseId  Int
+
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model QuizQuestion {
+  id        Int      @id @default(autoincrement())
+  question  String
+  optionA   String
+  optionB   String
+  optionC   String
+  optionD   String
+  answer    String
+
+  quizId    Int
+  quiz      Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+model QuizAttempt {
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  quizId      Int
+  score       Int
+  total       Int
+  submittedAt DateTime @default(now())
+
+  student     User     @relation(fields: [studentId], references: [id])
+  quiz        Quiz     @relation(fields: [quizId], references: [id], onDelete: Cascade)
+}
+
+model LessonProgress {
+  id          Int      @id @default(autoincrement())
+  studentId   Int
+  lessonId    Int
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, lessonId])
+}
+
+model Certificate {
+  id          Int      @id @default(autoincrement())
+  certificateNo String @unique
+  studentId   Int
+  courseId    Int
+  issuedAt    DateTime @default(now())
+
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
 }
